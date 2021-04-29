@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  web-api:
+    build: .
+    command: python src/air_quality_app/streaming.py 
+    volumes:
+      - .:/app
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - DOCKER_INFLUXDB_INIT_USERNAME=influxdb
+      - DOCKER_INFLUXDB_INIT_PASSWORD=influxdb
+    depends_on:
+      - influxdb
+
+  influxdb:
+    build:
+      context: ./db
+      dockerfile: Dockerfile
+    volumes:
+      - ./db/influxdb:/var/lib/influxdb
+    expose:
+      - 8086  # nicht nach außen gemappt, nur für den anderen Container
+    ports:
+      - 8086:8086  # expose to access db from outside the container for dev purposes
+    environment:
+      - DOCKER_INFLUXDB_INIT_USERNAME=influxdb
+      - DOCKER_INFLUXDB_INIT_PASSWORD=influxdb
