@@ -1,5 +1,5 @@
 
-FROM python:3.9.2-slim-buster
+FROM arm32v7/python:3.9.2-slim-buster
 
 # set working directory
 WORKDIR /app
@@ -23,7 +23,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN pip install --no-cache-dir --compile -e .
 
-COPY ./src/air_quality_app/99-serial.rules /etc/udev/rules.d
 # add entrypoint.sh
 COPY ./entrypoint.sh .
 RUN chmod +x /app/entrypoint.sh

@@ -1,28 +1,42 @@
-version: "3.8"
+version: "3"
 
 services:
-  web-api:
+  python_app:
     build: .
-    command: python src/air_quality_app/streaming.py 
+    command: python src/air_quality_app/streaming.py
     volumes:
       - .:/app
-    environment:
-      - INFLUXDB_URL=http://influxdb:8086
-      - DOCKER_INFLUXDB_INIT_USERNAME=influxdb
-      - DOCKER_INFLUXDB_INIT_PASSWORD=influxdb
+    privileged: true
+    devices:
+      - "/dev:/dev"
     depends_on:
       - influxdb
 
   influxdb:
-    build:
-      context: ./db
-      dockerfile: Dockerfile
+    image: arm32v7/influxdb:latest
+    container_name: influxdb
+    restart: always
     volumes:
-      - ./db/influxdb:/var/lib/influxdb
-    expose:
-      - 8086  # nicht nach außen gemappt, nur für den anderen Container
-    ports:
-      - 8086:8086  # expose to access db from outside the container for dev purposes
+      - influxdb-storage:/var/lib/influxdb
     environment:
-      - DOCKER_INFLUXDB_INIT_USERNAME=influxdb
-      - DOCKER_INFLUXDB_INIT_PASSWORD=influxdb
+    - INFLUXDB_ADMIN_USER=influxdb
+    - INFLUXDB_ADMIN_PASSWORD=influxdb
+    ports:
+      - "8086:8086"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana-provisioning/:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    environment:
+      - GF_SECURITY_ADMIN_USER=grafana
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+
+volumes:
+  influxdb-storage:
+  grafana-storage:

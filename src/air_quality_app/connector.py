@@ -11,11 +11,11 @@ from air_quality_app.utils import export_dir
 
 ports = list_ports.comports(include_links=True)
 print("available ports: ", ports)
-print(ports[0].name)
-print(20 * "-")
+for port in ports:
+    print(port.name)
 iterations = 3600
 
-with serial.Serial("COM3") as ser:
+with serial.Serial("/dev/ttyUSB0") as ser:
     data = pd.DataFrame(columns=np.arange(18))
     for i in range(iterations):
         lst = []
