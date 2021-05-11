@@ -10,12 +10,9 @@ from serial.tools import list_ports
 def read_streaming_data(serial_object: serial.Serial):
     while True:
         lst = []
-        lst.append(
-            datetime.now(tz=pytz.timezone("Europe/Berlin")).strftime("%Y%m%d_%H%M%S%f")
-        )
 
-        for j in range(17):
-            if j in [1, 16]:
+        for i in range(17):
+            if i in [1, 16]:
                 x = ord(serial_object.read())
                 lst.append(x)
             else:
@@ -37,21 +34,22 @@ def preprocess_data(lst: list) -> dict:
         "Checksum",
     ]
 
-    CO2_ppm = lst[3] << 8 | lst[4]
-    CH20 = lst[5] << 8 | lst[6]
-    TVOC_ugm3 = lst[7] << 8 | lst[8]
-    PM25 = lst[9] << 8 | lst[10]
-    PM10 = lst[11] << 8 | lst[12]
-    temperature = lst[13] + lst[14] / 10
-    humidity = lst[15] + lst[16] / 10
+    CO2_ppm = lst[2] << 8 | lst[3]
+    CH20 = lst[4] << 8 | lst[5]
+    TVOC_ugm3 = lst[6] << 8 | lst[7]
+    PM25 = lst[8] << 8 | lst[9]
+    PM10 = lst[10] << 8 | lst[11]
+    temperature = lst[12] + lst[13] / 10 - 1.5  # adjustment
+    humidity = lst[14] + lst[15] / 10
 
-    timestamp = lst.pop(0)
+    timestamp = datetime.now(tz=pytz.timezone("Europe/Berlin"))
+
     checksum = (sum(lst) - lst[-1] - 256) == lst[-1]
     values = [CO2_ppm, CH20, TVOC_ugm3, PM25, PM10, temperature, humidity, checksum]
 
     data_dict = dict(zip(keys, values))
-    # entry = {timestamp: data_dict}
-    return data_dict
+    entry = {"measurement": "air_quality", "time": timestamp, "fields": data_dict}
+    return entry
 
 
 def db_exists(client: InfluxDBClient, dbname: str) -> bool:
@@ -98,5 +96,4 @@ if __name__ == "__main__":
         while True:
             raw_data = next(gen)
             preprocessed_data = preprocess_data(raw_data)
-            print(preprocessed_data)
             client.write_points([preprocessed_data])
