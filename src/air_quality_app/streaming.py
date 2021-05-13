@@ -67,6 +67,9 @@ def connect_db(client: InfluxDBClient, dbname: str):
     if not db_exists(client, dbname):
         print(f"creating database {dbname}")
         client.create_database(dbname)
+        client.create_retention_policy(
+            name="data_retention", duration="12w", default=True, replication=1
+        )
     else:
         print("database already exists")
         client.switch_database(dbname)
@@ -96,4 +99,7 @@ if __name__ == "__main__":
         while True:
             raw_data = next(gen)
             preprocessed_data = preprocess_data(raw_data)
-            client.write_points([preprocessed_data])
+            client.write_points(
+                [preprocessed_data],
+                retention_policy="data_retention",
+            )
