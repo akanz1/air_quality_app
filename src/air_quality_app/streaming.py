@@ -65,13 +65,13 @@ def connect_db(client: InfluxDBClient, dbname: str):
     """connect to the database, and create it if it does not exist"""
     print("connecting to database...")
     if not db_exists(client, dbname):
-        print(f"creating database {dbname}")
+        print(f"Creating database {dbname}")
         client.create_database(dbname)
         client.create_retention_policy(
-            name="data_retention", duration="12w", default=True, replication=1
+            name="data_retention", duration="6w", default=True, replication=1
         )
     else:
-        print("database already exists")
+        print("Database already exists")
         client.switch_database(dbname)
 
 
