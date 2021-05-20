@@ -21,6 +21,7 @@ services:
     environment:
     - INFLUXDB_ADMIN_USER=influxdb
     - INFLUXDB_ADMIN_PASSWORD=influxdb
+    - INFLUXDB_REPORTING_DISABLED=true
     ports:
       - "8086:8086"
 
@@ -35,6 +36,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=grafana
       - GF_SECURITY_ADMIN_PASSWORD=grafana
+      - GF_ANALYTICS_REPORTING_ENABLED=false
 
 volumes:
   influxdb-storage:
