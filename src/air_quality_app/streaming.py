@@ -37,7 +37,7 @@ def preprocess_data(lst: list) -> dict:
     TVOC_ugm3 = lst[6] << 8 | lst[7]
     PM25 = lst[8] << 8 | lst[9]
     PM10 = lst[10] << 8 | lst[11]
-    temperature = lst[12] + lst[13] / 10 - 1.5  # adjustment to correct for bias
+    temperature = lst[12] + lst[13] / 10
     humidity = lst[14] + lst[15] / 10
 
     timestamp = datetime.now(tz=pytz.timezone("Europe/Berlin"))
