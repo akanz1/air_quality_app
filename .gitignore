@@ -23,7 +23,6 @@ __pycache__/*
 .idea
 .vscode
 tags
-db/*
 
 # Package files
 *.egg
