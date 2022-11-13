@@ -23,6 +23,7 @@ __pycache__/*
 .idea
 .vscode
 tags
+db/*
 
 # Package files
 *.egg
@@ -51,8 +52,4 @@ MANIFEST
 # Per-project virtualenvs
 .venv*/
 
-# RStudio files
-*.Rproj
-.Rproj.user
-.Rhistory
 
