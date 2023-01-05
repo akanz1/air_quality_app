@@ -35,9 +35,9 @@ def preprocess_data(lst: list) -> dict:
     CO2_ppm = lst[2] << 8 | lst[3]
     CH20 = lst[4] << 8 | lst[5]
     TVOC_ugm3 = lst[6] << 8 | lst[7]
-    PM25 = lst[8] << 8 | lst[9]
-    PM10 = lst[10] << 8 | lst[11]
-    temperature = lst[12] + lst[13] / 10 - 1.5 # adjustment to correct for bias
+    PM25 = lst[8] << 8 | lst[9] - 10  # adjustment to correct for bias
+    PM10 = lst[10] << 8 | lst[11] - 10  # adjustment to correct for bias
+    temperature = lst[12] + lst[13] / 10 - 1.5  # adjustment to correct for bias
     humidity = lst[14] + lst[15] / 10
 
     timestamp = datetime.now(tz=pytz.timezone("Europe/Berlin"))
@@ -50,13 +50,13 @@ def preprocess_data(lst: list) -> dict:
 
 
 def db_exists(client: InfluxDBClient, dbname: str) -> bool:
-    """returns True if the database exists"""
+    """Returns True if the database exists."""
     dbs = client.get_list_database()
     return any(db["name"] == dbname for db in dbs)
 
 
-def connect_db(client: InfluxDBClient, dbname: str):
-    """connect to the database, and create it if it does not exist"""
+def connect_db(client: InfluxDBClient, dbname: str) -> None:
+    """Connect to the database, and create it if it does not exist."""
     print("connecting to database...")
     if not db_exists(client, dbname):
         print(f"Creating database {dbname}")
@@ -83,7 +83,7 @@ if __name__ == "__main__":
         connect_db(client, dbname)
         print("Successfully Connected")
     except ConnectionError as e:
-        print("No Database Connection")
+        print(f"No Database Connection: {e}")
 
     ports = list_ports.comports(include_links=True)
     print("available ports: ", [port.name for port in ports])
