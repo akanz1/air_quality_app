@@ -22,6 +22,7 @@ services:
     - INFLUXDB_ADMIN_USER=influxdb
     - INFLUXDB_ADMIN_PASSWORD=influxdb
     - INFLUXDB_REPORTING_DISABLED=true
+    - DOCKER_INFLUXDB_INIT_RETENTION=52w
     ports:
       - "8086:8086"
 
