@@ -1,5 +1,5 @@
 
-FROM arm32v7/python:3.9.2-slim-buster
+FROM arm32v7/python:3.11.6-slim-bookworm
 
 # set working directory
 WORKDIR /app
@@ -10,7 +10,8 @@ ENV PYTHONUNBUFFERED 1
 
 # install system dependencies
 RUN apt update \
-    && apt -y install netcat gcc \
+    && apt -y install netcat-traditional gcc \
+    && apt -y install --reinstall build-essential \
     && apt install -y git \
     && apt clean
 
