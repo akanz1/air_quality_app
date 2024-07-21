@@ -1,2 +1,2 @@
-pyserial
-influxdb
+pyserial==3.5
+influxdb==5.3

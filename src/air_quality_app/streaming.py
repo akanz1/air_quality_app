@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import serial
@@ -62,7 +62,10 @@ def connect_db(client: InfluxDBClient, dbname: str) -> None:
         print(f"Creating database {dbname}")
         client.create_database(dbname)
         client.create_retention_policy(
-            name="data_retention", duration="6w", default=True, replication=1
+            name="short_term_retention", duration="2w", default=True, replication=1
+        )
+        client.create_retention_policy(
+            name="long_term_retention", duration="52w", default=True, replication=1
         )
     else:
         print("Database already exists")
@@ -84,16 +87,29 @@ if __name__ == "__main__":
         print("Successfully Connected")
     except ConnectionError as e:
         print(f"No Database Connection: {e}")
+        raise Exception from e
 
     ports = list_ports.comports(include_links=True)
     print("available ports: ", [port.name for port in ports])
 
+    last_temp_write = datetime.now(tz=pytz.timezone("Europe/Berlin")) - timedelta(seconds=30)
     with serial.Serial("/dev/ttyUSB0") as ser:
         gen = read_streaming_data(ser)
         while True:
             raw_data = next(gen)
             preprocessed_data = preprocess_data(raw_data)
+            
+            current_time = datetime.now(tz=pytz.timezone("Europe/Berlin"))
+            if (current_time - last_temp_write).total_seconds() >= 60:
+                print("Storing to 'long_term_retention'")
+                downsampled_data = preprocess_data(raw_data)
+                client.write_points(
+                    [downsampled_data],
+                    retention_policy="long_term_retention",
+                )
+                last_temp_write = current_time
+            print("Storing to 'short_term_retention'")
             client.write_points(
                 [preprocessed_data],
-                retention_policy="data_retention",
+                retention_policy="short_term_retention",
             )
