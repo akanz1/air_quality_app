@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   python_app:
     build: .
@@ -13,7 +11,7 @@ services:
       - influxdb
 
   influxdb:
-    image: arm32v7/influxdb:latest
+    image: arm32v7/influxdb@sha256:5860a6f7fce49f8a6d7abb08246752f8f0b000a1b732817e9dc09ad998dfb521
     container_name: influxdb
     restart: always
     volumes:
@@ -27,7 +25,7 @@ services:
       - "8086:8086"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.1.0
     ports:
       - "3000:3000"
     volumes:

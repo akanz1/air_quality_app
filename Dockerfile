@@ -1,5 +1,5 @@
 
-FROM arm32v7/python:3.11.6-slim-bookworm
+FROM python:3.11.6-slim-bookworm
 
 # set working directory
 WORKDIR /app
