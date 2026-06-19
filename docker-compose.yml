@@ -1,5 +1,6 @@
 services:
   python_app:
+    image: air_quality_app_python_app:latest
     build: .
     command: python src/air_quality_app/streaming.py
     volumes:
