@@ -1,12 +1,12 @@
 
-FROM python:3.11.6-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 # set working directory
 WORKDIR /app
 
 # set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # install system dependencies
 RUN apt update \
@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # add app
 COPY . .
-RUN pip install --no-cache-dir --compile -e .
+RUN python -m py_compile src/air_quality_app/streaming.py
 
 # add entrypoint.sh
 COPY ./entrypoint.sh .
