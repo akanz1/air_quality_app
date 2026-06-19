@@ -1,0 +1,12 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    uid: jvRuRmWgz
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    database: air_quality_db
+    user: influxdb
+    isDefault: true
+    editable: true
