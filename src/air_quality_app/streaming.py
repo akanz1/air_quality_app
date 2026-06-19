@@ -10,6 +10,7 @@ DB_NAME = "air_quality_db"
 TIMEZONE = pytz.timezone("Europe/Berlin")
 
 SHORT_TERM_RETENTION = "short_term_retention"
+SHORT_TERM_RETENTION_DURATION = "4w"
 HISTORY_RETENTION = "history_15m"
 HISTORY_CONTINUOUS_QUERY = "cq_air_quality_15m"
 
@@ -80,14 +81,15 @@ def ensure_retention_policies(client: InfluxDBClient, dbname: str) -> None:
     if SHORT_TERM_RETENTION not in policies:
         client.create_retention_policy(
             name=SHORT_TERM_RETENTION,
-            duration="2w",
+            duration=SHORT_TERM_RETENTION_DURATION,
             default=True,
             replication=1,
             database=dbname,
         )
     else:
         client.query(
-            f'ALTER RETENTION POLICY "{SHORT_TERM_RETENTION}" ON "{dbname}" DEFAULT'
+            f'ALTER RETENTION POLICY "{SHORT_TERM_RETENTION}" ON "{dbname}" '
+            f"DURATION {SHORT_TERM_RETENTION_DURATION} DEFAULT"
         )
 
     if HISTORY_RETENTION not in policies:
