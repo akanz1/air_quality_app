@@ -1,10 +1,17 @@
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytz
 import serial
 from influxdb import InfluxDBClient
 from serial.tools import list_ports
+
+DB_NAME = "air_quality_db"
+TIMEZONE = pytz.timezone("Europe/Berlin")
+
+SHORT_TERM_RETENTION = "short_term_retention"
+HISTORY_RETENTION = "history_15m"
+HISTORY_CONTINUOUS_QUERY = "cq_air_quality_15m"
 
 
 def read_streaming_data(serial_object: serial.Serial):
@@ -40,7 +47,7 @@ def preprocess_data(lst: list) -> dict:
     temperature = lst[12] + lst[13] / 10 - 1.0  # adjustment to correct for bias
     humidity = lst[14] + lst[15] / 10
 
-    timestamp = datetime.now(tz=pytz.timezone("Europe/Berlin"))
+    timestamp = datetime.now(tz=TIMEZONE)
 
     checksum = (sum(lst) - lst[-1] - 256) == lst[-1]
     values = [CO2_ppm, CH20, TVOC_ugm3, PM25, PM10, temperature, humidity, checksum]
@@ -61,29 +68,71 @@ def connect_db(client: InfluxDBClient, dbname: str) -> None:
     if not db_exists(client, dbname):
         print(f"Creating database {dbname}")
         client.create_database(dbname)
-        client.create_retention_policy(
-            name="short_term_retention", duration="2w", default=True, replication=1
-        )
-        client.create_retention_policy(
-            name="long_term_retention", duration="52w", default=True, replication=1
-        )
     else:
         print("Database already exists")
-        client.switch_database(dbname)
+    client.switch_database(dbname)
+    ensure_retention_policies(client, dbname)
+    ensure_continuous_queries(client, dbname)
+
+
+def ensure_retention_policies(client: InfluxDBClient, dbname: str) -> None:
+    policies = {policy["name"] for policy in client.get_list_retention_policies(dbname)}
+    if SHORT_TERM_RETENTION not in policies:
+        client.create_retention_policy(
+            name=SHORT_TERM_RETENTION,
+            duration="2w",
+            default=True,
+            replication=1,
+            database=dbname,
+        )
+    else:
+        client.query(
+            f'ALTER RETENTION POLICY "{SHORT_TERM_RETENTION}" ON "{dbname}" DEFAULT'
+        )
+
+    if HISTORY_RETENTION not in policies:
+        client.query(
+            f'CREATE RETENTION POLICY "{HISTORY_RETENTION}" ON "{dbname}" '
+            "DURATION INF REPLICATION 1 SHARD DURATION 52w"
+        )
+
+
+def ensure_continuous_queries(client: InfluxDBClient, dbname: str) -> None:
+    existing_queries = {
+        query["name"] for query in client.query("SHOW CONTINUOUS QUERIES").get_points()
+    }
+    if HISTORY_CONTINUOUS_QUERY in existing_queries:
+        return
+
+    client.query(
+        f"CREATE CONTINUOUS QUERY {HISTORY_CONTINUOUS_QUERY} ON {dbname} "
+        "RESAMPLE EVERY 15m FOR 30m "
+        "BEGIN "
+        'SELECT mean("CO2_ppm") AS "CO2_ppm", '
+        'mean("CH20_ugm3") AS "CH20_ugm3", '
+        'mean("TVOC_ugm3") AS "TVOC_ugm3", '
+        'mean("PM2.5") AS "PM2.5", '
+        'mean("PM10") AS "PM10", '
+        'mean("Temperature") AS "Temperature", '
+        'mean("Humidity") AS "Humidity" '
+        f'INTO "{HISTORY_RETENTION}"."air_quality" '
+        f'FROM "{SHORT_TERM_RETENTION}"."air_quality" '
+        "GROUP BY time(15m) "
+        "END"
+    )
 
 
 if __name__ == "__main__":
-    dbname = "air_quality_db"
     try:
         client = InfluxDBClient(
             host="influxdb",
             port=8086,
             username="influxdb",
             password="influxdb",
-            database=dbname,
+            database=DB_NAME,
         )
         print(client.ping())
-        connect_db(client, dbname)
+        connect_db(client, DB_NAME)
         print("Successfully Connected")
     except ConnectionError as e:
         print(f"No Database Connection: {e}")
@@ -92,24 +141,14 @@ if __name__ == "__main__":
     ports = list_ports.comports(include_links=True)
     print("available ports: ", [port.name for port in ports])
 
-    last_temp_write = datetime.now(tz=pytz.timezone("Europe/Berlin")) - timedelta(seconds=30)
     with serial.Serial("/dev/ttyUSB0") as ser:
         gen = read_streaming_data(ser)
         while True:
             raw_data = next(gen)
             preprocessed_data = preprocess_data(raw_data)
-            
-            current_time = datetime.now(tz=pytz.timezone("Europe/Berlin"))
-            if (current_time - last_temp_write).total_seconds() >= 60:
-                print("Storing to 'long_term_retention'")
-                downsampled_data = preprocess_data(raw_data)
-                client.write_points(
-                    [downsampled_data],
-                    retention_policy="long_term_retention",
-                )
-                last_temp_write = current_time
-            print("Storing to 'short_term_retention'")
+
+            print(f"Storing to '{SHORT_TERM_RETENTION}'")
             client.write_points(
                 [preprocessed_data],
-                retention_policy="short_term_retention",
+                retention_policy=SHORT_TERM_RETENTION,
             )
