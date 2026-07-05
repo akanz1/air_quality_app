@@ -10,6 +10,19 @@ services:
       - "/dev:/dev"
     depends_on:
       - influxdb
+    restart: unless-stopped
+
+  uv_collector:
+    image: air_quality_app_python_app:latest
+    build: .
+    command: python src/air_quality_app/uv_collector.py
+    volumes:
+      - .:/app
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
 
   influxdb:
     image: arm32v7/influxdb@sha256:5860a6f7fce49f8a6d7abb08246752f8f0b000a1b732817e9dc09ad998dfb521

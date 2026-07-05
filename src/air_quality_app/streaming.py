@@ -1,9 +1,11 @@
 import sys
+import time
 from datetime import datetime
 
 import pytz
 import serial
 from influxdb import InfluxDBClient
+from influxdb.exceptions import InfluxDBServerError
 from serial.tools import list_ports
 
 DB_NAME = "air_quality_db"
@@ -94,15 +96,12 @@ def ensure_retention_policies(client: InfluxDBClient, dbname: str) -> None:
 
     if HISTORY_RETENTION not in policies:
         client.query(
-            f'CREATE RETENTION POLICY "{HISTORY_RETENTION}" ON "{dbname}" '
-            "DURATION INF REPLICATION 1 SHARD DURATION 52w"
+            f'CREATE RETENTION POLICY "{HISTORY_RETENTION}" ON "{dbname}" DURATION INF REPLICATION 1 SHARD DURATION 52w'
         )
 
 
 def ensure_continuous_queries(client: InfluxDBClient, dbname: str) -> None:
-    existing_queries = {
-        query["name"] for query in client.query("SHOW CONTINUOUS QUERIES").get_points()
-    }
+    existing_queries = {query["name"] for query in client.query("SHOW CONTINUOUS QUERIES").get_points()}
     if HISTORY_CONTINUOUS_QUERY in existing_queries:
         return
 
@@ -150,7 +149,11 @@ if __name__ == "__main__":
             preprocessed_data = preprocess_data(raw_data)
 
             print(f"Storing to '{SHORT_TERM_RETENTION}'")
-            client.write_points(
-                [preprocessed_data],
-                retention_policy=SHORT_TERM_RETENTION,
-            )
+            try:
+                client.write_points(
+                    [preprocessed_data],
+                    retention_policy=SHORT_TERM_RETENTION,
+                )
+            except InfluxDBServerError as e:
+                print(f"InfluxDB write failed, continuing: {e}")
+                time.sleep(5)
