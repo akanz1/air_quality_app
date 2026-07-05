@@ -8,9 +8,9 @@ import pytz
 from influxdb import InfluxDBClient
 from influxdb.exceptions import InfluxDBServerError
 
-from air_quality_app.streaming import connect_db
-from air_quality_app.streaming import DB_NAME
-from air_quality_app.streaming import SHORT_TERM_RETENTION
+from streaming import connect_db
+from streaming import DB_NAME
+from streaming import SHORT_TERM_RETENTION
 
 TIMEZONE = pytz.timezone("Europe/Berlin")
 MEASUREMENT = "uv_sensor"
