@@ -16,6 +16,8 @@ services:
     image: air_quality_app_python_app:latest
     build: .
     command: python src/air_quality_app/uv_collector.py
+    environment:
+      - PYTHONPATH=/app/src
     volumes:
       - .:/app
     depends_on:
